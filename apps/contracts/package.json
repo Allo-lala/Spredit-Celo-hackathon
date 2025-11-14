@@ -11,6 +11,10 @@
     "deploy:alfajores": "hardhat ignition deploy ignition/modules/Lock.ts --network alfajores",
     "deploy:sepolia": "hardhat ignition deploy ignition/modules/Lock.ts --network sepolia",
     "deploy:celo": "hardhat ignition deploy ignition/modules/Lock.ts --network celo",
+    "deploy:token": "hardhat ignition deploy ignition/modules/ClaimableToken.ts",
+    "deploy:token:alfajores": "hardhat ignition deploy ignition/modules/ClaimableToken.ts --network alfajores",
+    "deploy:token:sepolia": "hardhat ignition deploy ignition/modules/ClaimableToken.ts --network sepolia",
+    "deploy:token:celo": "hardhat ignition deploy ignition/modules/ClaimableToken.ts --network celo",
     "verify": "hardhat verify",
     "clean": "hardhat clean",
     "typechain": "hardhat typechain"
@@ -38,6 +42,7 @@
     "@types/chai": "^4.2.0",
     "@types/mocha": ">=9.1.0",
     "chai": "^4.2.0",
+    "dotenv": "^17.2.3",
     "ethers": "^6.4.0",
     "hardhat": "^2.19.0",
     "hardhat-gas-reporter": "^1.0.8",

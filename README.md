@@ -1,8 +1,8 @@
 # celo-app
 
-A Celo blockchain application
+A Celo blockchain application with token claiming functionality
 
-A modern Celo blockchain application built with Next.js, TypeScript, and Turborepo.
+A modern Celo blockchain application built with Next.js, TypeScript, and Turborepo. This app allows users to connect their wallet and claim 20 tokens once per wallet address using Composer Kit UI components.
 
 ## Getting Started
 
@@ -11,12 +11,30 @@ A modern Celo blockchain application built with Next.js, TypeScript, and Turbore
    pnpm install
    ```
 
-2. Start the development server:
+2. Set up environment variables:
+   Create a `.env` file in the root directory with:
+   ```env
+   NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id_here
+   PRIVATE_KEY=your_private_key_here
+   NEXT_PUBLIC_TOKEN_CONTRACT_ADDRESS=0x0000000000000000000000000000000000000000
+   ```
+   
+   Get a WalletConnect Project ID from [https://cloud.walletconnect.com](https://cloud.walletconnect.com)
+
+3. Deploy the token contract to Celo Alfajores:
+   ```bash
+   cd apps/contracts
+   pnpm deploy:token:alfajores
+   ```
+   
+   After deployment, copy the contract address and update `NEXT_PUBLIC_TOKEN_CONTRACT_ADDRESS` in your `.env` file.
+
+4. Start the development server:
    ```bash
    pnpm dev
    ```
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Project Structure
 
@@ -41,15 +59,47 @@ This is a monorepo managed by Turborepo with the following structure:
 - `pnpm contracts:deploy:sepolia` - Deploy to Celo Sepolia testnet
 - `pnpm contracts:deploy:celo` - Deploy to Celo mainnet
 
+### Token Contract Deployment
+
+- `pnpm contracts:deploy:token` - Deploy ClaimableToken to local network
+- `pnpm contracts:deploy:token:alfajores` - Deploy ClaimableToken to Celo Alfajores testnet
+- `pnpm contracts:deploy:token:sepolia` - Deploy ClaimableToken to Celo Sepolia testnet
+- `pnpm contracts:deploy:token:celo` - Deploy ClaimableToken to Celo mainnet
+
+## Features
+
+- **Wallet Connection**: Connect wallet using Composer Kit Wallet component
+- **Token Claiming**: Claim 20 tokens once per wallet address
+- **Balance Display**: View your token balance in real-time
+- **Mobile-Friendly**: Responsive design that works on all devices
+- **One-Time Claim**: Prevents users from claiming multiple times
+
 ## Tech Stack
 
 - **Framework**: Next.js 14 with App Router
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui
+- **UI Components**: shadcn/ui + Composer Kit (@composer-kit/ui)
+- **Wallet Integration**: Wagmi + Viem + RainbowKit
 - **Smart Contracts**: Hardhat with Viem
+- **Token Standard**: ERC-20 (OpenZeppelin)
 - **Monorepo**: Turborepo
 - **Package Manager**: PNPM
+
+## Contract Details
+
+The `ClaimableToken` contract is an ERC-20 token that:
+- Allows users to claim 20 tokens once per wallet address
+- Tracks which addresses have already claimed
+- Prevents duplicate claims
+- Uses OpenZeppelin's ERC20 implementation for security
+
+## Usage
+
+1. Connect your wallet using the "Connect Wallet" button
+2. Ensure you're on Celo Alfajores testnet
+3. Click "Claim Tokens" to claim 20 tokens
+4. View your balance in the balance display section
 
 ## Learn More
 
@@ -57,3 +107,6 @@ This is a monorepo managed by Turborepo with the following structure:
 - [Celo Documentation](https://docs.celo.org/)
 - [Turborepo Documentation](https://turbo.build/repo/docs)
 - [shadcn/ui Documentation](https://ui.shadcn.com/)
+- [Composer Kit Documentation](https://github.com/celo-org/composer-kit)
+- [Wagmi Documentation](https://wagmi.sh/)
+- [Viem Documentation](https://viem.sh/)

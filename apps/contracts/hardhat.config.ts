@@ -1,5 +1,10 @@
 import type { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox-viem";
+import * as dotenv from "dotenv";
+import { resolve } from "path";
+
+// Load .env file from project root
+dotenv.config({ path: resolve(__dirname, "../../.env") });
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -20,9 +25,11 @@ const config: HardhatUserConfig = {
     },
     // Celo Alfajores Testnet
     alfajores: {
-      url: "https://alfajores-forno.celo-testnet.org",
+      url: process.env.ALFAJORES_RPC_URL || "https://alfajores-forno.celo-testnet.org",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 44787,
+      timeout: 300000, // 300 seconds (5 minutes)
+      httpHeaders: {},
     },
     // Celo Sepolia Testnet
     sepolia: {
