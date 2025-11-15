@@ -8,8 +8,8 @@ import { WalletProvider } from "@/components/wallet-provider"
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'celo-app',
-  description: 'A Celo blockchain application',
+  title: 'Spredit - Sports Prediction on Celo',
+  description: 'Predict sports outcomes and win rewards on Celo blockchain. Soccer, Rugby, Basketball predictions.',
 };
 
 export default function RootLayout({

@@ -14,8 +14,9 @@ import {
 import { WalletConnectButton } from "@/components/connect-button"
 
 const navLinks = [
-  { name: "Home", href: "/" },
-  { name: "Docs", href: "https://docs.celo.org", external: true },
+  { name: "Home", href: "/", external: false },
+  { name: "My Predictions", href: "/predictions", external: false },
+  { name: "Leaderboard", href: "/leaderboard", external: false },
 ]
 
 export function Navbar() {
@@ -37,7 +38,7 @@ export function Navbar() {
               <div className="flex items-center gap-2 mb-8">
 
                 <span className="font-bold text-lg">
-                  celo-app
+                  Spredit
                 </span>
               </div>
               <nav className="flex flex-col gap-4">
@@ -66,7 +67,7 @@ export function Navbar() {
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
 
             <span className="hidden font-bold text-xl sm:inline-block">
-              celo-app
+              Spredit
             </span>
           </Link>
         </div>

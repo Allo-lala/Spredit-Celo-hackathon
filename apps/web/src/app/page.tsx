@@ -1,308 +1,265 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi"
+import { useAccount } from "wagmi"
 import { celoAlfajores } from "wagmi/chains"
-import { formatUnits, parseUnits } from "viem"
 import { Wallet, Connect, Avatar, Name } from "@composer-kit/ui/wallet"
-import { Address } from "@composer-kit/ui/address"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, CheckCircle2, XCircle, Coins } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { Trophy, Calendar, Users, TrendingUp, Activity, Target, Zap } from "lucide-react"
+import Link from "next/link"
 
-// Contract ABI - Update this with your deployed contract address
-const CLAIMABLE_TOKEN_ABI = [
-  {
-    inputs: [],
-    name: "claimTokens",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "_address", type: "address" }],
-    name: "checkClaimStatus",
-    outputs: [{ internalType: "bool", name: "", type: "bool" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "account", type: "address" }],
-    name: "balanceOf",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "CLAIM_AMOUNT",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-] as const
-
-// TODO: Replace with your deployed contract address after deployment
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_TOKEN_CONTRACT_ADDRESS || "0x0000000000000000000000000000000000000000"
-
-// Check if contract address is valid (not the zero address)
-const isValidContractAddress = CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000" && CONTRACT_ADDRESS.startsWith("0x") && CONTRACT_ADDRESS.length === 42
+// Mock games data - In production, this would come from an API
+const mockGames = {
+  soccer: [
+    {
+      id: 1,
+      homeTeam: "Manchester United",
+      awayTeam: "Liverpool",
+      date: "2024-01-15",
+      time: "15:00",
+      league: "Premier League",
+      status: "upcoming"
+    },
+    {
+      id: 2,
+      homeTeam: "Barcelona",
+      awayTeam: "Real Madrid",
+      date: "2024-01-16",
+      time: "20:00",
+      league: "La Liga",
+      status: "upcoming"
+    },
+    {
+      id: 3,
+      homeTeam: "Arsenal",
+      awayTeam: "Chelsea",
+      date: "2024-01-17",
+      time: "17:30",
+      league: "Premier League",
+      status: "upcoming"
+    }
+  ],
+  rugby: [
+    {
+      id: 4,
+      homeTeam: "All Blacks",
+      awayTeam: "Springboks",
+      date: "2024-01-18",
+      time: "14:00",
+      league: "International",
+      status: "upcoming"
+    },
+    {
+      id: 5,
+      homeTeam: "England",
+      awayTeam: "France",
+      date: "2024-01-19",
+      time: "16:00",
+      league: "Six Nations",
+      status: "upcoming"
+    }
+  ],
+  basketball: [
+    {
+      id: 6,
+      homeTeam: "Lakers",
+      awayTeam: "Warriors",
+      date: "2024-01-20",
+      time: "22:00",
+      league: "NBA",
+      status: "upcoming"
+    },
+    {
+      id: 7,
+      homeTeam: "Celtics",
+      awayTeam: "Heat",
+      date: "2024-01-21",
+      time: "20:30",
+      league: "NBA",
+      status: "upcoming"
+    }
+  ]
+}
 
 function HomeContent() {
   const { address, isConnected, chain } = useAccount()
-  const [hasClaimed, setHasClaimed] = useState<boolean | null>(null)
-
-  // Check if user has already claimed
-  const { data: claimStatus, refetch: refetchClaimStatus } = useReadContract({
-    address: CONTRACT_ADDRESS as `0x${string}`,
-    abi: CLAIMABLE_TOKEN_ABI,
-    functionName: "checkClaimStatus",
-    args: address ? [address] : undefined,
-    chainId: celoAlfajores.id,
-    query: {
-      enabled: !!address && isConnected && isValidContractAddress,
-    },
-  })
-
-  // Get token balance
-  const { data: balance, refetch: refetchBalance } = useReadContract({
-    address: CONTRACT_ADDRESS as `0x${string}`,
-    abi: CLAIMABLE_TOKEN_ABI,
-    functionName: "balanceOf",
-    args: address ? [address] : undefined,
-    chainId: celoAlfajores.id,
-    query: {
-      enabled: !!address && isConnected && isValidContractAddress,
-    },
-  })
-
-  // Get claim amount
-  const { data: claimAmount } = useReadContract({
-    address: CONTRACT_ADDRESS as `0x${string}`,
-    abi: CLAIMABLE_TOKEN_ABI,
-    functionName: "CLAIM_AMOUNT",
-    chainId: celoAlfajores.id,
-    query: {
-      enabled: isValidContractAddress,
-    },
-  })
-
-  // Write contract for claiming
-  const { writeContract, data: hash, isPending, error } = useWriteContract()
-
-  // Wait for transaction
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash,
-    chainId: celoAlfajores.id,
-  })
-
-  useEffect(() => {
-    if (claimStatus !== undefined) {
-      setHasClaimed(claimStatus as boolean)
-    }
-  }, [claimStatus])
-
-  useEffect(() => {
-    if (isConfirmed) {
-      refetchBalance()
-      refetchClaimStatus()
-      setHasClaimed(true)
-    }
-  }, [isConfirmed, refetchBalance, refetchClaimStatus])
-
-  const handleClaim = () => {
-    if (!address || !isConnected) return
-
-    writeContract({
-      address: CONTRACT_ADDRESS as `0x${string}`,
-      abi: CLAIMABLE_TOKEN_ABI,
-      functionName: "claimTokens",
-      chainId: celoAlfajores.id,
-    })
-  }
+  const [selectedSport, setSelectedSport] = useState<"soccer" | "rugby" | "basketball">("soccer")
 
   const isWrongNetwork = isConnected && chain?.id !== celoAlfajores.id
-  const canClaim = isConnected && !hasClaimed && !isWrongNetwork && !isPending && !isConfirming && isValidContractAddress
-  const displayBalance = balance ? formatUnits(balance as bigint, 18) : "0"
-  const displayClaimAmount = claimAmount ? formatUnits(claimAmount as bigint, 18) : "20"
 
   return (
     <main className="flex-1">
-      <section className="relative py-8 lg:py-16">
-        <div className="container px-4 mx-auto max-w-4xl">
-          <div className="text-center max-w-2xl mx-auto mb-8">
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
-              Claim Your <span className="text-primary">Tokens</span>
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8">
-              Connect your wallet and claim 20 tokens. One-time only per wallet address.
-            </p>
-          </div>
-
-          {/* Contract Not Deployed Warning */}
-          {!isValidContractAddress && (
-            <div className="mb-6 max-w-md mx-auto">
-              <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
-                <CardContent className="pt-6">
-                  <div className="flex items-start gap-3">
-                    <XCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
-                        Contract Not Deployed
-                      </h3>
-                      <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-3">
-                        The token contract needs to be deployed before you can claim tokens.
-                      </p>
-                      <div className="text-xs text-yellow-600 dark:text-yellow-400 space-y-1">
-                        <p>1. Deploy the contract: <code className="bg-yellow-100 dark:bg-yellow-900 px-1 rounded">cd apps/contracts && pnpm deploy:token:alfajores</code></p>
-                        <p>2. Update .env with: <code className="bg-yellow-100 dark:bg-yellow-900 px-1 rounded">NEXT_PUBLIC_TOKEN_CONTRACT_ADDRESS=0x...</code></p>
-                        <p>3. Restart the dev server</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+      {/* Hero Section */}
+      <section className="relative py-12 lg:py-20 bg-gradient-to-br from-primary/10 via-background to-primary/5">
+        <div className="container px-4 mx-auto max-w-7xl">
+          <div className="text-center max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 text-sm font-medium bg-primary/10 text-primary rounded-full border border-primary/20">
+              <Trophy className="h-4 w-4" />
+              Spredit - Sports Prediction on Celo
             </div>
-          )}
-
-          <div className="flex flex-col items-center gap-6">
-            {/* Wallet Connection Card */}
-            <Card className="w-full max-w-md">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Coins className="h-5 w-5" />
-                  Wallet Connection
-                </CardTitle>
-                <CardDescription>
-                  Connect your wallet to claim tokens
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center gap-4">
-                <div className="w-full">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
+              Predict. Win. <span className="text-primary">Earn.</span>
+            </h1>
+            <p className="text-lg md:text-xl text-muted-foreground mb-8 leading-relaxed">
+              Connect your wallet and predict the outcomes of upcoming sports matches. 
+              Win rewards when your predictions are correct!
+            </p>
+            {!isConnected && (
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <div className="w-full sm:w-auto">
                   <Wallet>
-                    <Connect
-                      label="Connect Wallet"
-                      onConnect={() => {
-                        console.log("Wallet connected")
-                      }}
-                    >
-                      <div className="flex items-center gap-3 w-full justify-center">
+                    <Connect label="Connect Wallet to Start">
+                      <div className="flex items-center gap-2">
                         <Avatar />
                         <Name isTruncated />
                       </div>
                     </Connect>
                   </Wallet>
                 </div>
-
-                {isConnected && address && (
-                  <div className="w-full pt-4 border-t">
-                    <div className="text-sm text-muted-foreground mb-2">Your Address:</div>
-                    <Address
-                      address={address}
-                      isTruncated
-                      copyOnClick
-                      className="text-sm font-mono"
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Claim Card */}
-            {isConnected && isValidContractAddress && (
-              <Card className="w-full max-w-md">
-                <CardHeader>
-                  <CardTitle>Claim Tokens</CardTitle>
-                  <CardDescription>
-                    Claim {displayClaimAmount} tokens to your wallet
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {isWrongNetwork && (
-                    <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-md">
-                      <XCircle className="h-4 w-4" />
-                      <span className="text-sm">
-                        Please switch to Celo Alfajores testnet
-                      </span>
-                    </div>
-                  )}
-
-                  {!isWrongNetwork && hasClaimed && (
-                    <div className="flex items-center gap-2 p-3 bg-green-500/10 text-green-600 dark:text-green-400 rounded-md">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span className="text-sm">
-                        You have already claimed your tokens!
-                      </span>
-                    </div>
-                  )}
-
-                  {!isWrongNetwork && !hasClaimed && (
-                    <div className="space-y-4">
-                      <div className="p-4 bg-muted rounded-lg">
-                        <div className="text-sm text-muted-foreground mb-1">Claim Amount</div>
-                        <div className="text-2xl font-bold">{displayClaimAmount} CLAIM</div>
-                      </div>
-
-                      <Button
-                        onClick={handleClaim}
-                        disabled={!canClaim || isPending || isConfirming}
-                        className="w-full"
-                        size="lg"
-                      >
-                        {isPending || isConfirming ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            {isPending ? "Confirming..." : "Processing..."}
-                          </>
-                        ) : (
-                          "Claim Tokens"
-                        )}
-                      </Button>
-
-                      {error && (
-                        <div className="p-3 bg-destructive/10 text-destructive rounded-md text-sm">
-                          {error.message}
-                        </div>
-                      )}
-
-                      {isConfirmed && (
-                        <div className="flex items-center gap-2 p-3 bg-green-500/10 text-green-600 dark:text-green-400 rounded-md">
-                          <CheckCircle2 className="h-4 w-4" />
-                          <span className="text-sm">Tokens claimed successfully!</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Balance Display */}
-                  <div className="pt-4 border-t">
-                    <div className="text-sm text-muted-foreground mb-2">Your Balance</div>
-                    <div className="text-2xl font-bold">{displayBalance} CLAIM</div>
-                  </div>
-                </CardContent>
-              </Card>
+              </div>
             )}
-
-            {/* Instructions Card */}
-            {!isConnected && (
-              <Card className="w-full max-w-md">
-                <CardHeader>
-                  <CardTitle>How to Claim</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-                    <li>Connect your wallet using the button above</li>
-                    <li>Make sure you're on Celo Alfajores testnet</li>
-                    <li>Click the "Claim Tokens" button</li>
-                    <li>Confirm the transaction in your wallet</li>
-                    <li>Wait for the transaction to complete</li>
-                  </ol>
-                </CardContent>
-              </Card>
+            {isConnected && isWrongNetwork && (
+              <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  Please switch to Celo Alfajores testnet to make predictions
+                </p>
+              </div>
             )}
           </div>
         </div>
       </section>
+
+      {/* Games Section */}
+      {isConnected && !isWrongNetwork && (
+        <section className="py-12 lg:py-16">
+          <div className="container px-4 mx-auto max-w-7xl">
+            <div className="mb-8">
+              <h2 className="text-3xl md:text-4xl font-bold mb-2">Upcoming Games</h2>
+              <p className="text-muted-foreground">Select a sport and make your predictions</p>
+            </div>
+
+            <Tabs value={selectedSport} onValueChange={(v) => setSelectedSport(v as any)} className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-8">
+                <TabsTrigger value="soccer" className="flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  Soccer
+                </TabsTrigger>
+                <TabsTrigger value="rugby" className="flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Rugby
+                </TabsTrigger>
+                <TabsTrigger value="basketball" className="flex items-center gap-2">
+                  <Zap className="h-4 w-4" />
+                  Basketball
+                </TabsTrigger>
+              </TabsList>
+
+              {(["soccer", "rugby", "basketball"] as const).map((sport) => (
+                <TabsContent key={sport} value={sport} className="mt-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {mockGames[sport].map((game) => (
+                      <Card key={game.id} className="hover:shadow-lg transition-shadow">
+                        <CardHeader>
+                          <div className="flex items-center justify-between mb-2">
+                            <Badge variant="secondary">{game.league}</Badge>
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Calendar className="h-3 w-3" />
+                              {game.date}
+                            </div>
+                          </div>
+                          <CardTitle className="text-xl">{game.homeTeam} vs {game.awayTeam}</CardTitle>
+                          <CardDescription className="flex items-center gap-2 mt-2">
+                            <span>{game.time}</span>
+                            <span>•</span>
+                            <span className="capitalize">{game.status}</span>
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Link href={`/predict/${game.id}`}>
+                            <Button className="w-full" size="lg">
+                              <TrendingUp className="h-4 w-4 mr-2" />
+                              Make Prediction
+                            </Button>
+                          </Link>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </TabsContent>
+              ))}
+            </Tabs>
+          </div>
+        </section>
+      )}
+
+      {/* Stats Section */}
+      {isConnected && !isWrongNetwork && (
+        <section className="py-12 lg:py-16 bg-muted/50">
+          <div className="container px-4 mx-auto max-w-7xl">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Active Predictions</CardTitle>
+                  <Users className="h-5 w-5 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">0</div>
+                  <p className="text-sm text-muted-foreground mt-1">Your pending predictions</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Win Rate</CardTitle>
+                  <Trophy className="h-5 w-5 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">-</div>
+                  <p className="text-sm text-muted-foreground mt-1">Start predicting to see your stats</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Total Earnings</CardTitle>
+                  <TrendingUp className="h-5 w-5 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">0 cUSD</div>
+                  <p className="text-sm text-muted-foreground mt-1">Rewards from correct predictions</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Connect Wallet CTA */}
+      {!isConnected && (
+        <section className="py-12 lg:py-16">
+          <div className="container px-4 mx-auto max-w-4xl">
+            <Card className="border-2">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl mb-2">Ready to Start Predicting?</CardTitle>
+                <CardDescription>
+                  Connect your wallet to start making predictions on upcoming games
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center">
+                <Wallet>
+                  <Connect label="Connect Wallet">
+                    <div className="flex items-center gap-2">
+                      <Avatar />
+                      <Name isTruncated />
+                    </div>
+                  </Connect>
+                </Wallet>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      )}
     </main>
   )
 }
@@ -317,15 +274,11 @@ export default function Home() {
   if (!mounted) {
     return (
       <main className="flex-1">
-        <section className="relative py-8 lg:py-16">
-          <div className="container px-4 mx-auto max-w-4xl">
-            <div className="text-center max-w-2xl mx-auto mb-8">
-              <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
-                Claim Your <span className="text-primary">Tokens</span>
-              </h1>
-              <p className="text-lg md:text-xl text-muted-foreground mb-8">
-                Connect your wallet and claim 20 tokens. One-time only per wallet address.
-              </p>
+        <section className="relative py-12 lg:py-20">
+          <div className="container px-4 mx-auto max-w-7xl">
+            <div className="text-center">
+              <h1 className="text-4xl md:text-6xl font-bold mb-4">Spredit</h1>
+              <p className="text-lg text-muted-foreground">Loading...</p>
             </div>
           </div>
         </section>
