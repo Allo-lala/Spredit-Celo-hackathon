@@ -1,6 +1,6 @@
 # celo-app
 
-A Celo blockchain application with token claiming functionality
+A Celo blockchain application with token claiming functionality called `Spredit` from `Spot (Sport) predictions `
 
 A modern Celo blockchain application built with Next.js, TypeScript, and Turborepo. This app allows users to connect their wallet and claim 20 tokens once per wallet address using Composer Kit UI components.
 
@@ -94,19 +94,5 @@ The `ClaimableToken` contract is an ERC-20 token that:
 - Prevents duplicate claims
 - Uses OpenZeppelin's ERC20 implementation for security
 
-## Usage
-
-1. Connect your wallet using the "Connect Wallet" button
-2. Ensure you're on Celo Alfajores testnet
-3. Click "Claim Tokens" to claim 20 tokens
-4. View your balance in the balance display section
-
-## Learn More
-
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Celo Documentation](https://docs.celo.org/)
-- [Turborepo Documentation](https://turbo.build/repo/docs)
-- [shadcn/ui Documentation](https://ui.shadcn.com/)
-- [Composer Kit Documentation](https://github.com/celo-org/composer-kit)
-- [Wagmi Documentation](https://wagmi.sh/)
-- [Viem Documentation](https://viem.sh/)
+### 
+cd "/home/alanyi/Downloads/Celo Hackathon/celo-app/apps/web" && pnpm dev
